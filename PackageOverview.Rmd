@@ -1,0 +1,178 @@
+---
+title: "Package Overview"
+author: "Dennis Jiang & Trey Schulman"
+date: "March 2, 2020"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    toc_collapse: TRUE
+    theme: lumen
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DataExplorer)
+library(ggplot2)
+```
+
+## Package Summary
+Exploratory Data Analysis is the first and often times the most significant phase of data analysis and modeling. This process is where trends and patterns are identified. These trends determine what hypotheses are proposed and play a tremendous role in the subsequent steps of data analysis. DataExplorer was designed to make EDA simpler and faster by automating data visualization and cleaning so that data scientists can focus strictly on the data and identifying trends. The package also aims to make feature engineering simpler by including functions that make it easy to replace missing values, group categories, and drop and update different features.
+
+### Background information
+The package was first released in March 2016 (version 0.2.3), and the latest version (0.8.1) was released in January of this year. DataExplorer imports several packages such as reshape2, scales, and ggplot2.
+
+## Examples of Usage
+
+
+
+### Exploratory Data Analysis
+
+#### Introduce
+The introduce function provides an easy way to examine the metadata of your dataset. 
+```{r}
+econ_data <- rio::import('EconomistData.csv')
+introduce(econ_data)
+```
+
+#### Plot_intro
+Plot_intro() gives us a different way of visualizing our metadata. It gives us the percentage of discrete columns, continous columns, missing columns, missing observations, etc. in bar graph format. This makes data exploration a lot easier and gives us guidance when cleaning our dataset. 
+
+With the plot_intro() function we can also add a title or change the theme using any of ggplot2 themes. The theme_conifig() also gives us a way to pass a list of configurations to be passed to theme
+```{r}
+plot_intro(econ_data, 
+           title ="Intro Plot", 
+           ggtheme =theme_light(), 
+           theme_config=theme(legend.position="bottom"))
+```
+
+#### Plot_missing {.tabset}
+Plot_missing() gives a way to look more in-depth into how much data you're missing and where it's missing. It groups by columns and finds all of the missing rows for each one. 
+
+##### All Data 
+```{r}
+beach <- read.csv("beaches.csv")
+plot_missing(beach, 
+             group = c("Excellent" = 0.0, "Good" = .01, "Ok" = .05, "Bad" = .1), #custom labels
+             missing_only = F,
+             title= "Missing my Beach Data",
+             ggtheme = theme_bw(),
+             theme_config = list(legend.position = c("top")) )
+```
+
+##### Missing Only 
+```{r}
+plot_missing(beach, 
+             group = c("Excellent" = 0.0, "Good" = .01, "Ok" = .05, "Bad" = .1), #custom labels
+             missing_only = T,
+             title= "Missing my Beach Data",
+             ggtheme = theme_bw(),
+             theme_config = list(legend.position = c("top")) )
+```
+
+
+#### Plot_historgram {.tabset}
+Plot_historgram produces a histogram for each continous variable. For the econ_data dataset, it produces histograms for CPI, HDI, and HDI rank. This is an incredibly easy and fast aternative to ggplot and creating separate histograms for different variables.
+
+We can also customize the x axis, theme, title, and the max number of graphs that appear per column/row.
+
+##### Default
+```{r}
+plot_histogram(econ_data)
+```
+
+##### Customized
+```{r}
+plot_histogram(econ_data, 
+               title = "Histograms for Econ Data", 
+               ggtheme = theme_dark(), 
+               scale_x = "reverse",
+               nrow = 2, ncol =2)
+```
+
+#### Plot_correlation {.tabset}
+Plot_correlation() gives us a correlation heatmap that makes it incredibly easy to identify patterns and trends within your data. The function gives us a great alternative to identify correlations between variables. It gives us the option to choose discrete, continous, or all variables. Maxcat will cap the number of catgories for each discrete features. So if we set the maxcat to 10, variables with over 10 categories will be ignored.
+
+##### Default
+```{r}
+plot_correlation(econ_data)
+```
+
+##### Customized 
+```{r}
+plot_correlation(econ_data, 
+                 type = "discrete", 
+                 maxcat = 10, 
+                 ggtheme = theme_bw())
+```
+
+
+### Feature Engineering
+
+#### Drop_columns {.tabset}
+Drop_column provides a simple method to delte entire columns. We can delete them by name or we can delete them by index
+
+##### By Index
+```{r}
+econ_exclude_12 <- drop_columns(econ_data, 1:2) #removes columns 1 and 2
+```
+
+##### By Name
+```{r}
+econ_excluce_HDI <- drop_columns(econ_data, "HDI") #removes HDI column
+```
+
+#### Update_columns
+Update_columns takes in three argumments: data, ind (names or positions of the column), and what (the function being applied to the column)
+```{r}
+econ_update <- update_columns(econ_data, "Region", as.factor)
+```
+
+#### Group_category
+Group_category() groups together discrete features that account for a low percentage of the count for that feature or based off of another variable. This means it groups together the less signficicant data, so analysis can be focused on the more significant features. 
+```{r}
+us <- read.csv("USArrests.csv") 
+# groups together states that collectively account for less than 
+# 50% of assualts into "OTHER"
+grouped <- group_category(us, feature = "State", threshold = .5, 
+                          measure = "Assault", update= T) 
+plot_bar(grouped[ which(grouped$State != "OTHER"), ], with = "Assault")
+```
+
+### Data Reporting 
+
+#### Create_report
+With only one function DataExplorer runs all of its EDA functions and visualizations and creates an html report on your dataset. You can also specify what you specifically want in your data report. 
+```{r, results= FALSE, message = FALSE}
+configurations <-configure_report(
+  add_plot_histogram = FALSE, #excluding some plots
+  add_plot_str = FALSE,
+  add_plot_qq = FALSE,
+  add_plot_correlation = FALSE,
+  add_plot_prcomp= FALSE,
+  add_plot_boxplot = FALSE,
+  global_ggtheme = theme_bw() #setting theme
+) 
+create_report(beach, 
+              y = "enterococci", #choose a response variable
+              config = configurations, 
+              report_title= "Beaches Dataset Report") 
+```
+
+## Similar Packages 
+
+* **ggplot2**- DataExplorer visualizations have a very similar look to ggplot plots. In fact, the ggplot2 package has to be loaded in order to customize DataExplorer plots. DataExplorer is different in that its plotting functions are simpler, easier to use, and usually require just one line of code. ggplot2, though, is capable of creating much more detailed and specific plots. 
+* **dplyr**- These two packages are similar in that they both contain ways for manipulating data. In particular, select() performs the same job as drop_columns() but does it in the opposite way. group_by() is similar to group_category() but group_category() is more specific and more meant for grouping together sparse variables. Overall, DataExplorer data manipulation is meant for executing more specific tasks easily, whereas dplyr is designed for all of the broad data manipulation that is more often used.  
+* **dataMaid**- This is another R package designed for peforming automated EDA and has many similar functions to DataExplorer, such as functions for data summaries, visualizations, and data reports. Advantages of DataExplorer are that it can create more plots (correlation), visualizes data with more customization options, and it provides feature engineering functions. The biggest draw of dataMaid is that it detects problems in the data and finds outliers, miscoded factor levels, and missing values, which dataMaid all compiles into a data problems report. 
+
+## Reflection
+
+### Pros
+DataExplorer does an incredible job of automating the process of data visualization with powerful one or two line commands that have the ability to create a multitude of different graphs. It is incredibly easy to learn and is well-documented with numerous easily
+accessible examples to learn from.
+
+### Cons
+However, the package is fairly limited in regards to detail. Although you can add an argument with a list of theme configurations to most functions within the package, most of the graphs/plots produced are relatively simple. If we wanted to make a detailed graph that would leave no room for confusion, this package would not be the solution. It's great for creating basic graphs for EDA, but not so great at producing very informative visuals. The package also relies on different packages like ggplot2, so for some functions it's necessary to know how to use other packages.
+
+### Conclusion
+Overall, DataExplorer does exactly what it was intended to do. It is a simple way to kickstart EDA and automate the data visualization process so that data scientists can focus strictly on the data itself.
+
